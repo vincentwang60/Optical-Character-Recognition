@@ -64,7 +64,6 @@ def filter(dict,min): #removes lines that are too close to each other from initi
         list = []
         for key in dict.keys():
             list.append(key)
-        print('l',list)
         for i in range(len(list)-1):
             if list[i+1]-list[i]<min:
                 done = False
@@ -103,9 +102,7 @@ def find_lines(im,search,threshold): #finds lines from rotated bw image
                     out[i+1] = max(counts[top:bot])/counts[i+1]
             else:
                 out[i+1] = max(counts[top:bot])
-    print('o',out)
     out = filter(out,int(height/50))
-    print('o',out)
     for el in out:
       for x in range(width):
           pix[x,el] = (255,0,0)
@@ -150,8 +147,8 @@ def segment_line(line): #doesn't work, tries to get words from line
 im = Image.open("sample2.jpeg")
 width,height = im.size
 rotated = convert_to_bw(im,10).rotate(-1,fillcolor = 'white')#rotated manually for now
-lines = find_lines(rotated,int(height/100),int(height/100))
-hist = make_histogram(rotated,lines)
+lines = find_lines(rotated,int(height/100),int(height/100))#y values of lines
+hist = make_histogram(rotated,lines)#list of histograms of each line
 for i in range(4):
     out = segment_line(hist[i])
     line_image = rotated.crop((0,lines[i],width,lines[i+1]))
