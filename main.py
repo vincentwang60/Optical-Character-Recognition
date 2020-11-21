@@ -2,6 +2,7 @@ from PIL import Image
 from PIL import ImageFilter
 import random as r
 import math as m
+import time
 
 def get_threshold(im): #determines the average value of a cropped image for convert_to_bw
     width,height = im.size
@@ -13,7 +14,6 @@ def get_threshold(im): #determines the average value of a cropped image for conv
     return out/(width*height)
 def convert_to_bw(im,size):#returns image and list of pixels
     im = im.filter(ImageFilter.GaussianBlur(radius=1))
-    #im.show()
     pix = im.load()
     new = Image.new(mode = "RGB", size = (im.size[0], im.size[1]))
     new_pix = new.load()
@@ -33,30 +33,17 @@ def convert_to_bw(im,size):#returns image and list of pixels
             else:
                 new_pix[x,y] = (0,0,0)
     return new
-def find_angle(pix, samples):  # given black and white pixels and list of samples, returns angle to rotate by
-    # to go r distance in the direction theta add r*cos(theta) to x val, and r*sin(theta) to y val
-    # (100,100). (100+r*cos(30),100+r*sin(30))
-    #pix[x,y]
-    r = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    angles = [i for i in range(361)]
-    sample_size = 50
-    percent = 0
-    bool_list =[]
-    ang_bool_list = [0] * 360
-    samp_list = [0] * sample_size
-    for samp in samples:
-        for ang in angles:
-            boolean = True
-            for i in r:
-                if pix((round(i * m.cos(m.radians(ang))) + samp[0]), (round(i * m.sin(m.radians(ang))) + samp[0])) == (
-                        0, 0, 0):
-                    boolean = False
-            bool_list.append(boolean)
-            if bool_list[ang - 1]:
-                ang_bool_list[ang] += 1
-        samp_list[samp] += ang_bool_list[samp]
-    elm_num = samp_list.index(max(samp_list))
-    return angles[elm_num]
+def find_angle(im):  # given image, returns angle to rotate by finding scores of a sequence of angles
+    newsize = (int(im.size[0]/4),int(im.size[1]/4))
+    new = im.resize(newsize)
+    pix = new.load()
+    width,height = new.size
+    out = {}
+    for i in range(-5,6):
+        rotated = new.rotate(i/2,fillcolor = 'white')
+        result = find_lines(rotated,int(rotated.size[0]/100),int(rotated.size[1]/100),True,False)
+        out[i/2] = result
+    return max(out, key=out.get)
 def filter(dict,min): #removes lines that are too close to each other from initial find_lines
     done = False
     while not done:
@@ -73,21 +60,27 @@ def filter(dict,min): #removes lines that are too close to each other from initi
                     else:
                         del dict[list[i+1]]
     return dict
-def find_lines(im,search,threshold): #finds lines from rotated bw image
+def find_lines(im,search,threshold,angle_flag = False,draw = False): #finds lines from rotated bw image. also outputs how good the lines are
     out = {}
     counts = []
-    new = Image.new(mode = "RGB", size = (im.size[0], im.size[1]))
-    new_pix = new.load()
+    score = 0
+    if draw:
+        new = Image.new(mode = "RGB", size = (im.size[0], im.size[1]))
+        new_pix = new.load()
     pix = im.load()
     width,height = im.size
     for h in range(height):
         count = 0
         for w in range(width):
-            if pix[w,h] == (0,0,0):
+            if pix[w,h] != (255,255,255):
                 count += 1
         counts.append(count)
-        for i in range(count):
-            new_pix[i,h] = (255,0,0)
+        if draw:
+            for i in range(count):
+                new_pix[i,h] = (255,0,0)
+    if angle_flag:
+        mean = sum(counts) / len(counts)
+        return sum((i - mean) ** 2 for i in counts) / len(counts)
     for i in range(len(counts)-2):
         if counts[i] > counts[i+1] and counts[i+1] <= counts[i+2]:
             top = 0
@@ -103,17 +96,20 @@ def find_lines(im,search,threshold): #finds lines from rotated bw image
             else:
                 out[i+1] = max(counts[top:bot])
     out = filter(out,int(height/50))
-    for el in out:
-      for x in range(width):
-          pix[x,el] = (255,0,0)
-          new_pix[x,el] = (255,255,255)
-    im.show()
-    new.show()
+
+    if draw:
+        for el in out:
+          for x in range(width):
+              pix[x,el] = (255,0,0)
+              new_pix[x,el] = (255,255,255)
+        im.show()
+        new.show()
     return list(out.keys())
-def make_histogram(im,lines):#returns 2d-array which is histogram of each line, also show convenient picture
+def make_histogram(im,lines,draw = False):#returns 2d-array which is histogram of each line, also show convenient picture
     out = []
-    new = Image.new(mode = "RGB", size = (im.size[0], im.size[1]))
-    new_pix = new.load()
+    if draw:
+        new = Image.new(mode = "RGB", size = (im.size[0], im.size[1]))
+        new_pix = new.load()
     pix = im.load()
     for i in range(len(lines)-1):
         list = []
@@ -123,10 +119,12 @@ def make_histogram(im,lines):#returns 2d-array which is histogram of each line, 
                 if pix[x,y] == (0,0,0):
                     count += 1
             list.append(count)
-            for j in range(count):
-                new_pix[x,lines[i+1]-j] = (255,0,0)
+            if draw:
+                for j in range(count):
+                    new_pix[x,lines[i+1]-j] = (255,0,0)
         out.append(list)
-    new.show()
+    if draw:
+        new.show()
     return out
 def segment_line(line): #doesn't work, tries to get words from line
     out = []
@@ -144,12 +142,32 @@ def segment_line(line): #doesn't work, tries to get words from line
             open = False
     return out
 
-im = Image.open("sample2.jpeg")
+start = time.time()
+im = Image.open("sample3.jpg")
+bw = convert_to_bw(im,10)
+
+print("Covert to bw done in:",time.time() - start)
+start = time.time()
+
+angle = find_angle(bw)
+
+print("Find angle",angle,"in:",time.time() - start)
+start = time.time()
+
+rotated = bw.rotate(angle,fillcolor = 'white')#rotates bw image
 width,height = im.size
-rotated = convert_to_bw(im,10).rotate(-1,fillcolor = 'white')#rotated manually for now
-lines = find_lines(rotated,int(height/100),int(height/100))#y values of lines
-hist = make_histogram(rotated,lines)#list of histograms of each line
-for i in range(4):
+lines = find_lines(rotated,int(height/100),int(height/100),False,True)#y values of lines
+
+print("Rotate and find lines done in:",time.time() - start)
+start = time.time()
+
+hist = make_histogram(rotated,lines)#list of histograms of each lines
+
+print("Make histogram done in:",time.time() - start)
+start = time.time()
+
+'temp debugging'
+'''for i in range(4):
     out = segment_line(hist[i])
     line_image = rotated.crop((0,lines[i],width,lines[i+1]))
     line_pix = line_image.load()
@@ -157,3 +175,4 @@ for i in range(4):
         for h in range(line_image.size[1]):
             line_pix[o,h] = (255,0,0)
     line_image.show()
+'''
