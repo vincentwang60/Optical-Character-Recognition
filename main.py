@@ -39,7 +39,7 @@ def find_angle(im):  # given image, returns angle to rotate by finding scores of
     pix = new.load()
     width,height = new.size
     out = {}
-    for i in range(-5,6):
+    for i in range(-20,21):
         rotated = new.rotate(i/2,fillcolor = 'white')
         result = find_lines(rotated,int(rotated.size[0]/100),int(rotated.size[1]/100),True,False)
         out[i/2] = result
@@ -143,7 +143,7 @@ def segment_line(line): #doesn't work, tries to get words from line
     return out
 
 start = time.time()
-im = Image.open("sample3.jpg")
+im = Image.open("sample4.jpg")
 bw = convert_to_bw(im,10)
 
 print("Covert to bw done in:",time.time() - start)
