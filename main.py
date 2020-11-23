@@ -3,6 +3,11 @@ from PIL import ImageFilter
 import random as r
 import math as m
 import time
+import tkinter as tk
+from tkinter import Label
+from tkinter import filedialog
+import os
+import tkinter.font as tkFont
 
 def get_threshold(im): #determines the average value of a cropped image for convert_to_bw
     width,height = im.size
@@ -142,29 +147,66 @@ def segment_line(line): #doesn't work, tries to get words from line
             open = False
     return out
 
-start = time.time()
-im = Image.open("sample4.jpg")
-bw = convert_to_bw(im,10)
+def upload(): #called when upload button is pressed
+    filename = filedialog.askopenfilename(initialdir = "/",title = "Select a File",filetypes =[("All image types", ".png .jpg .jpeg")])
+    file_l.configure(text="File Opened: "+filename)
+    file_l.configure(font = font12)
+def convert(): #called when convert button is pressed
+    path = file_l.cget('text')[13:]
+    print('convert',path)
+    start = time.time()
+    im = Image.open(path)
+    bw = convert_to_bw(im,10)
 
-print("Covert to bw done in:",time.time() - start)
-start = time.time()
+    print("Covert to bw done in:",time.time() - start)
+    start = time.time()
 
-angle = find_angle(bw)
+    angle = find_angle(bw)
 
-print("Find angle",angle,"in:",time.time() - start)
-start = time.time()
+    print("Find angle",angle,"in:",time.time() - start)
+    start = time.time()
 
-rotated = bw.rotate(angle,fillcolor = 'white')#rotates bw image
-width,height = im.size
-lines = find_lines(rotated,int(height/100),int(height/100),False,True)#y values of lines
+    rotated = bw.rotate(angle,fillcolor = 'white')#rotates bw image
+    width,height = im.size
+    lines = find_lines(rotated,int(height/100),int(height/100),False,True)#y values of lines
 
-print("Rotate and find lines done in:",time.time() - start)
-start = time.time()
+    print("Rotate and find lines done in:",time.time() - start)
+    start = time.time()
 
-hist = make_histogram(rotated,lines)#list of histograms of each lines
+    hist = make_histogram(rotated,lines)#list of histograms of each lines
 
-print("Make histogram done in:",time.time() - start)
-start = time.time()
+    print("Make histogram done in:",time.time() - start)
+    start = time.time()
+
+window = tk.Tk()
+window.geometry("500x500")
+window.winfo_toplevel().title("OCR")
+
+font30 = tkFont.Font(family="Lucida Grande", size=30)
+font20 = tkFont.Font(family="Lucida Grande", size=20)
+font15 = tkFont.Font(family="Lucida Grande", size=15)
+font12 = tkFont.Font(family="Lucida Grande", size=12)
+title_l = Label(window,text = 'Optical Character \nRecognition',font = font30)
+title_l.place(relx = 0.5, rely = 0.2, anchor = 'center')
+
+instructions_l = Label(window,text='Choose an image file to convert to text.',font = font15)
+instructions_l.place(relx = 0.5,rely = 0.4,anchor = 'center')
+
+upload_b = tk.Button(window,text = 'Open File',font = font20, width = 13, command = upload)
+upload_b.place(relx = 0.5, rely = 0.55, anchor = 'center')
+
+convert_b = tk.Button(window,text = 'Convert',font = font20, width = 10, command = convert)
+convert_b.place(relx = 0.5, rely = 0.85, anchor = 'center')
+
+file_text = 'No file chosen'
+file_l = Label(window,text='No file chosen',font = font15)
+file_l.place(relx = 0.5, rely = 0.66, anchor = 'center')
+
+window.mainloop()
+'''
+
+
+'''
 
 'temp debugging'
 '''for i in range(4):
