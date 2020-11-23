@@ -6,8 +6,10 @@ import time
 import tkinter as tk
 from tkinter import Label
 from tkinter import filedialog
-import os
+import tkinter.scrolledtext as tkst
 import tkinter.font as tkFont
+import os
+import clipboard
 
 def get_threshold(im): #determines the average value of a cropped image for convert_to_bw
     width,height = im.size
@@ -146,7 +148,17 @@ def segment_line(line): #doesn't work, tries to get words from line
             out.append(int((top+bot)/2))
             open = False
     return out
-
+def copy(text,copy_b): #called when copy button is pressed
+    clipboard.copy(text)
+    copy_b.config(text='Copied!')
+def save(text,save_b): #called when save as txt button is pressed
+    f = filedialog.asksaveasfilename(title = 'Select save location',filetypes=(("Text Files", "*.txt"),("All Files", "*.*")),defaultextension = '.*')
+    if f is None: # asksaveasfile return `None` if dialog closed with "cancel".
+        return
+    f = open(f,'w')
+    f.write(text)
+    f.close()
+    save_b.config(text='Saved!')
 def upload(): #called when upload button is pressed
     filename = filedialog.askopenfilename(initialdir = "/",title = "Select a File",filetypes =[("All image types", ".png .jpg .jpeg")])
     file_l.configure(text="File Opened: "+filename)
@@ -178,43 +190,45 @@ def convert(): #called when convert button is pressed
     print("Make histogram done in:",time.time() - start)
     start = time.time()
 
+    output = """He stopped the car and went out with her to the edge of the field to look at the magpies, which foraged on the ground until they got quite close, at which point they flew off to some trees in the distance. Then they went down a riverbed that was practically dried up, with only a thin stream of water flowing down the center. But it was a northern river all the same, and so they picked up small chilly smooth stones from the riverbed and pitched them in, watching the cloudy yellow water gush out of the holes they broke in the thin ice. They passed a small town and spent a while at the market there. She knelt down by a goldfish vendor, the fish in their glass bowls like liquid flames under the sun, and wouldn’t leave. He bought her two and put them, water and all, in plastic bags on the backseat of the car. They entered a hamlet, but found nothing that felt like the countryside. The houses and compounds were brand new, cars were parked outside of many of the gates, the cement roads were wide, and people were dressed no differently than in the cities—a few girls were even stylish. Even the dogs were the same long-haired, short-legged parasites found in the cities. More interesting was the large stage at the entrance to the village—they marveled at how such a small village could have such an immense stage. It was empty, so with some effort he climbed up and—looking down at his lone audience member—sang a verse from “Tonkaya Ryabina” about the slender hawthorn tree. At noon, they ate in another town, where the food was more or less the same as in the city, only the portions were about twice as large. After lunch, they sat drowsily in the warmth of the sun on a bench outside the town hall, and then drove onward with no direction in mind.
+    """
+    output_text = '----'
+    output_l = tkst.ScrolledText(master = text_frame, wrap = tk.WORD, width = 40, height = 8)
+    output_l.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+    output_l.insert(tk.INSERT,output)
+    output_l.config(state='disabled')
+    output_l.place(relx = 0.5, rely = 0.8, anchor = 'center')
+
+    copy_b = tk.Button(window,text = 'Copy text',font = font12, width = 13, command = lambda:copy(output,copy_b))
+    copy_b.place(relx = 0.35, rely = 0.95, anchor = 'center')
+
+    save_b = tk.Button(window,text = 'Save as .txt',font = font12, width = 13, command = lambda:save(output,save_b))
+    save_b.place(relx = 0.65, rely = 0.95, anchor = 'center')
+
 window = tk.Tk()
-window.geometry("500x500")
+text_frame = tk.Frame(master = window)
+text_frame.pack(fill='both', expand='yes')
+window.geometry("500x600")
 window.winfo_toplevel().title("OCR")
 
 font30 = tkFont.Font(family="Lucida Grande", size=30)
 font20 = tkFont.Font(family="Lucida Grande", size=20)
 font15 = tkFont.Font(family="Lucida Grande", size=15)
 font12 = tkFont.Font(family="Lucida Grande", size=12)
+
 title_l = Label(window,text = 'Optical Character \nRecognition',font = font30)
-title_l.place(relx = 0.5, rely = 0.2, anchor = 'center')
+title_l.place(relx = 0.5, rely = 0.1, anchor = 'center')
 
 instructions_l = Label(window,text='Choose an image file to convert to text.',font = font15)
-instructions_l.place(relx = 0.5,rely = 0.4,anchor = 'center')
-
-upload_b = tk.Button(window,text = 'Open File',font = font20, width = 13, command = upload)
-upload_b.place(relx = 0.5, rely = 0.55, anchor = 'center')
-
-convert_b = tk.Button(window,text = 'Convert',font = font20, width = 10, command = convert)
-convert_b.place(relx = 0.5, rely = 0.85, anchor = 'center')
+instructions_l.place(relx = 0.5,rely = 0.25,anchor = 'center')
 
 file_text = 'No file chosen'
 file_l = Label(window,text='No file chosen',font = font15)
-file_l.place(relx = 0.5, rely = 0.66, anchor = 'center')
+file_l.place(relx = 0.5, rely = 0.51, anchor = 'center')
 
+upload_b = tk.Button(window,text = 'Open File',font = font20, width = 13, command = upload)
+upload_b.place(relx = 0.5, rely = 0.4, anchor = 'center')
+
+convert_b = tk.Button(window,text = 'Convert',font = font20, width = 10, command = convert)
+convert_b.place(relx = 0.5, rely = 0.6, anchor = 'center')
 window.mainloop()
-'''
-
-
-'''
-
-'temp debugging'
-'''for i in range(4):
-    out = segment_line(hist[i])
-    line_image = rotated.crop((0,lines[i],width,lines[i+1]))
-    line_pix = line_image.load()
-    for o in out:
-        for h in range(line_image.size[1]):
-            line_pix[o,h] = (255,0,0)
-    line_image.show()
-'''
